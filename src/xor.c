@@ -38,6 +38,10 @@ int main(int argc, char ** argv)
     char *          pszOutputFile = NULL;
 	uint32_t		keyLength;
 	uint32_t		inputLength;
+	uint32_t		counter;
+	uint8_t			inputByte;
+	uint8_t			outputByte;
+	uint8_t			keyByte;
 
     if (argc > 1) {
         pszInputFile = strdup(&argv[argc - 1][0]);
@@ -92,9 +96,23 @@ int main(int argc, char ** argv)
 	}
 
 	printf("Key length is %u bytes, input length is %u bytes\n", keyLength, inputLength);
-	
-	while (!feof(fptrInput)) {
-		fputc((int)((uint8_t)fgetc(fptrInput) ^ (uint8_t)fgetc(fptrKey)), fptrOutput);
+
+	for (counter = 0;counter < inputLength;counter++) {
+		inputByte = (uint8_t)fgetc(fptrInput);
+
+		if (feof(fptrInput)) {
+			break;
+		}
+
+		keyByte = (uint8_t)fgetc(fptrKey);
+
+		if (feof(fptrKey)) {
+			break;
+		}
+
+		outputByte = inputByte ^ keyByte;
+
+		fputc((int)outputByte, fptrOutput);
 	}
 
 	fclose(fptrOutput);
