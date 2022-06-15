@@ -95,8 +95,6 @@ int main(int argc, char ** argv)
 		exit(-1);
 	}
 
-	printf("Key length is %u bytes, input length is %u bytes\n", keyLength, inputLength);
-
 	for (counter = 0;counter < inputLength;counter++) {
 		inputByte = (uint8_t)fgetc(fptrInput);
 
