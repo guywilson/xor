@@ -84,7 +84,6 @@ int main(int argc, char ** argv)
 	}
 
 	keyLength = getFileSize(fptrKey);
-	
 	inputLength = getFileSize(fptrInput);
 	
 	if (keyLength < inputLength) {
@@ -92,6 +91,8 @@ int main(int argc, char ** argv)
 		exit(-1);
 	}
 
+	printf("Key length is %u bytes, input length is %u bytes\n", keyLength, inputLength);
+	
 	while (!feof(fptrInput)) {
 		fputc((int)((uint8_t)fgetc(fptrInput) ^ (uint8_t)fgetc(fptrKey)), fptrOutput);
 	}
