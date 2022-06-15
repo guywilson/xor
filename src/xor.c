@@ -4,35 +4,28 @@
 #include <stdint.h>
 #include <errno.h>
 
-uint8_t * xor(uint8_t * input, uint32_t inputLength, uint8_t * key, uint32_t keyLength)
-{
-	uint8_t *		output;
-	uint32_t		i;
-
-	if (keyLength < inputLength) {
-		fprintf(stderr, "The key must be at least as long as the message to encrypt/decrypt\n");
-		return NULL;
-	}
-	
-	output = (uint8_t *)malloc(inputLength);
-
-	if (output == NULL) {
-		fprintf(stderr, "Failed to allocate %u bytes for the output buffer", inputLength);
-		return NULL;
-	}
-	
-	for (i = 0;i < inputLength;i++) {
-		output[i] = input[i] ^ key[i];
-	}
-
-	return output;
-}
-
 void printUsage()
 {
 	printf("Usage: xor <options> input_file\n");
 	printf("\t-k <keystream file>\n");
 	printf("\t-o <output file>\n\n");
+}
+
+uint32_t getFileSize(FILE * fptr)
+{
+	uint32_t		size;
+	long			currentPos;
+
+	currentPos = ftell(fptr);
+
+	fseek(fptr, 0L, SEEK_SET);
+	fseek(fptr, 0L, SEEK_END);
+
+	size = (uint32_t)ftell(fptr);
+
+	fseek(fptr, currentPos, SEEK_SET);
+
+	return size;
 }
 
 int main(int argc, char ** argv)
@@ -43,6 +36,8 @@ int main(int argc, char ** argv)
     char *          pszKeyFile = NULL;
     char *          pszInputFile = NULL;
     char *          pszOutputFile = NULL;
+	uint32_t		keyLength;
+	uint32_t		inputLength;
 
     if (argc > 1) {
         pszInputFile = strdup(&argv[argc - 1][0]);
@@ -81,10 +76,27 @@ int main(int argc, char ** argv)
 		exit(-1);
 	}
 
-	fptrOutput = fopen(pszKeyFile, "wb");
+	fptrOutput = fopen(pszOutputFile, "wb");
 
 	if (fptrOutput == NULL) {
 		fprintf(stderr, "Failed to open output file %s:%s", pszOutputFile, strerror(errno));
 		exit(-1);
 	}
+
+	keyLength = getFileSize(fptrKey);
+	
+	inputLength = getFileSize(fptrInput);
+	
+	if (keyLength < inputLength) {
+		fprintf(stderr, "The key must be at least as long as the message to encrypt/decrypt\n");
+		exit(-1);
+	}
+
+	while (!feof(fptrInput)) {
+		fputc((int)((uint8_t)fgetc(fptrInput) ^ (uint8_t)fgetc(fptrKey)), fptrOutput);
+	}
+
+	fclose(fptrOutput);
+	fclose(fptrInput);
+	fclose(fptrKey);
 }
