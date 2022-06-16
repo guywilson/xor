@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <errno.h>
 
+#define XOR_RANDOM_SOURCE				"/dev/urandom"
+
 void printUsage()
 {
 	printf("Usage: xor <options> input_file\n");
@@ -74,11 +76,11 @@ int main(int argc, char ** argv)
 	}
 
 	if (isKeyDevRand) {
-		fptrKey = fopen("/dev/urandom", "rb");
+		fptrKey = fopen(XOR_RANDOM_SOURCE, "rb");
 		fptrOutputKey = fopen(pszKeyFile, "wb");
 
 		if (fptrKey == NULL) {
-			fprintf(stderr, "Failed to open /dev/urnadom: %s", strerror(errno));
+			fprintf(stderr, "Failed to open random device: %s", strerror(errno));
 			exit(-1);
 		}
 
