@@ -8,6 +8,8 @@ void printUsage()
 {
 	printf("Usage: xor <options> input_file\n");
 	printf("\t-k <keystream file>\n");
+	printf("\t-r use /dev/urandom to get the key, the keystream file\n");
+	printf("\tspecified by -k is written with the random bytes from /dev/urandom\n");
 	printf("\t-o <output file>\n\n");
 }
 
@@ -33,6 +35,7 @@ int main(int argc, char ** argv)
 	FILE *			fptrKey;
 	FILE *			fptrInput;
 	FILE *			fptrOutput;
+	FILE *			fptrOutputKey = NULL;
     char *          pszKeyFile = NULL;
     char *          pszInputFile = NULL;
     char *          pszOutputFile = NULL;
@@ -42,6 +45,7 @@ int main(int argc, char ** argv)
 	uint8_t			inputByte;
 	uint8_t			outputByte;
 	uint8_t			keyByte;
+	int				isKeyDevRand = 0;
 
     if (argc > 1) {
         pszInputFile = strdup(&argv[argc - 1][0]);
@@ -53,6 +57,9 @@ int main(int argc, char ** argv)
                 }
                 else if (argv[i][1] == 'k') {
                 	pszKeyFile = strdup(&argv[i+1][0]);
+                }
+                else if (argv[i][1] == 'r') {
+                	isKeyDevRand = 1;
                 }
                 else if (argv[i][1] == 'h') {
                     printUsage();
@@ -66,11 +73,27 @@ int main(int argc, char ** argv)
 		exit(0);
 	}
 
-	fptrKey = fopen(pszKeyFile, "rb");
+	if (isKeyDevRand) {
+		fptrKey = fopen("/dev/urandom", "rb");
+		fptrOutputKey = fopen(pszKeyFile, "wb");
 
-	if (fptrKey == NULL) {
-		fprintf(stderr, "Failed to open keystream file %s:%s", pszKeyFile, strerror(errno));
-		exit(-1);
+		if (fptrKey == NULL) {
+			fprintf(stderr, "Failed to open /dev/urnadom: %s", strerror(errno));
+			exit(-1);
+		}
+
+		if (fptrOutputKey == NULL) {
+			fprintf(stderr, "Failed to open output key file %s:%s", pszKeyFile, strerror(errno));
+			exit(-1);
+		}
+	}
+	else {
+		fptrKey = fopen(pszKeyFile, "rb");
+
+		if (fptrKey == NULL) {
+			fprintf(stderr, "Failed to open keystream file %s:%s", pszKeyFile, strerror(errno));
+			exit(-1);
+		}
 	}
 	
 	fptrInput = fopen(pszInputFile, "rb");
@@ -87,12 +110,15 @@ int main(int argc, char ** argv)
 		exit(-1);
 	}
 
-	keyLength = getFileSize(fptrKey);
 	inputLength = getFileSize(fptrInput);
-	
-	if (keyLength < inputLength) {
-		fprintf(stderr, "The key must be at least as long as the message to encrypt/decrypt\n");
-		exit(-1);
+
+	if (!isKeyDevRand) {
+		keyLength = getFileSize(fptrKey);
+
+		if (keyLength < inputLength) {
+			fprintf(stderr, "The key must be at least as long as the message to encrypt/decrypt\n");
+			exit(-1);
+		}
 	}
 
 	for (counter = 0;counter < inputLength;counter++) {
@@ -111,6 +137,15 @@ int main(int argc, char ** argv)
 		outputByte = inputByte ^ keyByte;
 
 		fputc((int)outputByte, fptrOutput);
+
+		if (isKeyDevRand) {
+			fputc((int)keyByte, fptrOutputKey);
+		}
+	}
+
+
+	if (isKeyDevRand) {
+		fclose(fptrOutputKey);
 	}
 
 	fclose(fptrOutput);
